@@ -4,7 +4,7 @@
         <h1>Artists</h1>
         <div class="content">
             <div class="artist">
-                <img :src="artists.coverImgUrl.replace('http','https')" alt="">
+                <img :src="artists.replace('http','https')" alt="">
             </div>
         </div>
     </div>
@@ -40,7 +40,7 @@ import { mapGetters } from 'vuex'
 export default{
 data(){
         return {
-           artists:[],
+           artists:"",
            songs:[],
            albums:[]
         }
@@ -84,9 +84,8 @@ axiosCreate.get(`/playlist/detail?id=${id}`)
             if(res.status== 200){
             //   console.log(res.data.playlist.tracks);
               this.songs=res.data.playlist.tracks;
-              this.artists=res.data.playlist;
+              this.artists=res.data.playlist.coverImgUrl;
               this.albums=res.data.playlist.tracks;
-              // console.log(this.songs);
               // console.log(this.songs,this.artists,this.albums);
             }
         }).catch(err=>{

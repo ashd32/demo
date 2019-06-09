@@ -81,7 +81,7 @@ axiosCreate.interceptors.response.use(response => {
   //请求错误时做些事
   return Promise.reject(error)
 })
-axiosCreate.get(`/search?keywords=${q}&limit=6`)
+axiosCreate.get(`/search?keywords=${q}&limit=40`)
             .then(res=>{
             if(res.status== 200){
               // console.log(res) 
@@ -104,7 +104,7 @@ axiosCreate.get(`/search?keywords=${q}&limit=6`)
     },
     watch:{   
         getSearchWords(curval,oldval){
-          console.log(curval,oldval)
+          // console.log(curval,oldval)
           if(!curval)
           this.search(oldval);
           else

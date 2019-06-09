@@ -59,14 +59,49 @@
           </li>
         </ul>
     </aside>
-    <diV class="playlistpage">
+    <div class="lyricsPage">
+        <div class="closeItem" @click="hiddenLyricPage()">
+          <p>&times;</p>
+        </div>
+        <div class="lyricContent">
+          <div class="leftContent">
+            <div class="topBox">
+              <div class="imgBox">
+                <img :src="albumImgUrl" alt="">
+              </div>
+              <div class="playerControl-progress">
+                <div class="currentProgress"></div>
+              </div>
+              <div class="timeShow">
+                  <p class="leftTime">{{currentTime}}</p>
+                  <p class="rightTime">{{duration}}</p>
+              </div>
+              <div class="songBox">
+                <p>{{name ||""}}</p>
+                <p>{{singer ||""}}</p>
+                <p>{{album ||""}}</p>
+              </div>
+            </div>
+            <div class="bottomBox"></div>
+          </div>
+          <div class="rightContent">
+            <div class="lyricsTitle">
+              <h2>Lyrics</h2>
+            </div>
+            <div class="lyricsContent">
+              <p v-for="Lyric in lyric">{{Lyric[1]||"sorry,the lyrics is missing"}}</p>
+            </div>
+          </div>
+        </div>
+    </div>
+    <diV class="playlistpage" v-show="page">
           <router-view></router-view>
     </diV>
     <div class="player-bar" v-show="show">
-        <div class="player-songImg"  @click.self="lyricPage()">
+        <div class="player-songImg" @click="showLyricPage()">
               <img :src="albumImgUrl" alt="">
         </div>
-        <div class="player-control"  @click.self="lyricPage()">
+        <div class="player-control">
             <div class="playerControl-progress">
                 <div class="currentProgress"></div>
             </div>
@@ -183,7 +218,8 @@
             </div>
           </div>
           <div class="playListContent">
-            <div class="playListName songMenu" v-for="playlist in playlists" @click="audioplay(playlist.id,playlist.name,playlist.singer,playlist.album)">
+            <div class="playListName songMenu" v-for="playlist in playlists" @click="audioplay(playlist.id,playlist.name,playlist.singer,playlist.album,playlist.albumImgUrl)">
+              <img :src="playlist.albumImgUrl">
               <p>{{playlist.name||"name"}}</p>
               <p>{{playlist.singer||"singer"}}</p>
             </div>
@@ -227,13 +263,11 @@ data: function () {
     errmsg:'',
     uname:'',
     upassword:'',
-    albumImgUrl:''
+    albumImgUrl:'',
+    page:true,
   }
 },
 methods: {
-        lyricPage(){
-          console.log(1);
-        },
         getData(){
         this.errmsg=""
         var obj={
@@ -245,9 +279,8 @@ methods: {
             this.errmsg="";
             if(res.data.type=='success'){
               alert(`${res.data.value}登陆成功`)
-              this.user=res.data.value;
               this.$store.dispatch('setLoginstatus',res.data.value);
-              this.$router.push({path: 'home'});
+              this.$router.push({name: 'home'});
             }else if(res.data.value=='密码错误'){
               this.register()
             }else{
@@ -267,14 +300,24 @@ methods: {
             if(res.data.type=='success'){
               alert(`注册成功`)
               this.$store.dispatch('setLoginstatus',res.data.value)
-              this.$router.push({path: 'home'})
+              this.$router.push({name: 'home'})
             }else{
               this.errmsg=res.data.value
             }
            } 
          })
     },
-  loginAnimation(){
+  hiddenLyricPage(){
+    this.page=true;
+    var lyricsPage = document.querySelector('.lyricsPage');
+    lyricsPage.style.height =0;
+  },
+  showLyricPage(){
+    this.page=false;
+    var lyricsPage = document.querySelector('.lyricsPage');
+    lyricsPage.style.height = 100+"%" ;
+  },
+loginAnimation(){
     var login = document.querySelector('.login');
     login.classList.toggle("loginAnimation");
   },
@@ -321,19 +364,23 @@ methods: {
         audio.pause();
             // console.log('停止播放')
   },
-  audioplay(id,name,singer,album){
-      var songId= id || this.$store.getters.getSongId;
-      this.name = name;
-      this.singer = singer;
-      this.albumName = album || "";
+  audioplay(id,name,singer,album,albumImgUrl){
       var audio = document.getElementById('player');
+      var songId= id || this.$store.getters.getSongId;
+      this.name = name || "";
+      this.singer = singer || "";
+      this.albumName = album || "";
       this.bool=true;
       this.show=true;
-      this.albumImgUrl=this.$store.state.albumImgUrl;
+
+      if(this.$store.state.albumImgUrl.indexOf('https')==-1)
+      this.$store.state.albumImgUrl = this.$store.state.albumImgUrl.replace('http','https');
+
+      this.albumImgUrl=albumImgUrl || this.$store.state.albumImgUrl;
       this.getLyrics(songId);
       this.$http.get(`https://music.api.umcoder.com/song/url?id=${songId}`)
       .then(res=>{
-             audio.src = res.data.data[0].url;
+             audio.src = res.data.data[0].url.replace('http','https');
       })
       // this.cplay()
   },
@@ -347,17 +394,22 @@ methods: {
       this.changeProgress(e.target.currentTime.toFixed(0),e.target.duration.toFixed(0));
       this.audioSatus();
       for (var i = 0; i < this.lyric.length; i++) {
+        var p=document.querySelectorAll('.lyricsContent p');
         if (e.target.currentTime /*当前播放的时间*/ > this.lyric[i][0]) {
             //显示到页面
             this.timeLyric = this.lyric[i][1];
+            p[i].style.color="#86b0ed";
             // console.log(this.timeLyric)
         };
       };
     },
     changeProgress(cur,dur){
-            var cprogress= document.getElementsByClassName('currentProgress')[0];
+      
+            var cprogress= document.querySelectorAll('.currentProgress');
+                cprogress[0].style.width = cur/dur*100+"%";
+                cprogress[1].style.width = cur/dur*100+"%";
             // console.log(cur,dur)
-            cprogress.style.width = cur/dur*100+"%"
+            
             },
     timeToStr(time) {
          var  m = 0,
@@ -376,9 +428,10 @@ methods: {
               var audio = document.getElementById('player');
               if(audio.ended){
                      this.currentTime='00:00'
-                     var cprogress= document.getElementsByClassName('currentProgress')[0];
-                     cprogress.style.width=0; 
-                     this.cpause() 
+                     var cprogress= document.querySelectorAll('.currentProgress');
+                     cprogress[0].style.width =0;
+                     cprogress[1].style.width =0;
+                     this.next();
               }
       },
      addVolume(){
@@ -397,47 +450,34 @@ methods: {
       },
       previous(){
         if(this.num==0){
-            this.num  = this.count-1;
-            this.name = this.playlists[this.num].songName;
-            this.singer = this.playlists[this.num].singer;
-            this.album = this.playlists[this.num].albumName;
-            // console.log(this.playlists);
-            this.audioplay(this.playlists[this.num].id,this.songName,this.singer,this.albumName)
-            
-            return;
+            this.num  = this.playlists.length-1;
           }
        else if(this.num>0){
-         if(this.num==this.count){
+         if(this.num==this.playlists.length){
            --this.num;
          }
           --this.num;
+        }
             this.name = this.playlists[this.num].name;
             this.singer = this.playlists[this.num].singer;
             this.album = this.playlists[this.num].album;
-            this.audioplay(this.playlists[this.num].id,this.name,this.singer,this.album)      
-        
-        }
+            this.albumImgUrl=this.playlists[this.num].albumImgUrl;
+            this.audioplay(this.playlists[this.num].id,this.name,this.singer,'',this.albumImgUrl) 
 
       },
       next(){
-        if(this.num==this.count-1){  
+        if(this.$store.state.albumImgUrl.indexOf('https')==-1)
+        this.$store.state.albumImgUrl = this.$store.state.albumImgUrl.replace('http','https');
+        if(this.num==this.playlists.length-1){  
             this.num=0;
-            this.name = this.playlists[this.num].name;
-            this.singer = this.playlists[this.num].singer;
-            this.album = this.playlists[this.num].album;
-            // console.log(this.playlists);
-            this.audioplay(this.playlists[this.num].id,this.name,this.singer,this.album)
-        
         }else{  
-            ++this.num;
+            ++this.num;        
+        }
             this.name = this.playlists[this.num].name;
             this.singer = this.playlists[this.num].singer;
             this.album = this.playlists[this.num].album;
-            // console.log(this.playlists);
-            this.audioplay(this.playlists[this.num].id,this.name,this.singer,this.album)
-        
-        }
-                // console.log(this.num)
+            this.albumImgUrl=this.playlists[this.num].albumImgUrl;
+            this.audioplay(this.playlists[this.num].id,this.name,this.singer,'',this.albumImgUrl)         
       },
     getLyrics(id){
             var Lid = id || this.$store.state.id;
@@ -445,8 +485,14 @@ methods: {
             .then(res=>{
                 // console.log(res);
                 // console.log(res.data)
-                this.lyrics=res.data.lrc.lyric
-                this.parseLyric(this.lyrics)
+                if(res.data.lrc!=null){
+                  this.lyrics=res.data.lrc.lyric;
+                  this.parseLyric(this.lyrics);
+                }
+                else{
+                  this.timeLyric='sorry,the lyrics is null';
+                  return;
+                } 
             })
             .catch(err=>{
                 console.log(err)
@@ -491,26 +537,33 @@ methods: {
 },
 beforeMount () {
   console.log(`^_^^_^^_^^_^^_^`)
-      console.info('    更新的功能')        
+      console.info('    已更新的功能')        
       console.info('    播放功能')
       console.info('    历史表单')     
       console.info('    搜索功能')      
       console.info('    播放当前歌曲名')   
-      console.info('    播放进度条')      
-      console.log(`ctrl+↑ || ctrl+↓ 控制音量加减`)
+      console.info('    播放进度条')  
+      console.info('    点击正在播放歌曲的专辑图片即可看到歌词页面，暂不支持滚动')    
+      console.info('    登录功能目前只能登录，还没有自己的歌单列表，会后续开发')
+      console.info('    目前加载可能较慢，加载页面后续会优化')
+      console.info(`ctrl+↑ || ctrl+↓ 控制音量加减`)
+      console.info(`    音量控制尽快做出来`)
   console.log(`^_^^_^^_^^_^^_^`)
 
 },
 
 watch:{   
           getSongId(curval,oldval){ 
-            this.$store.state.historylists.push({id:`${this.$store.state.id}`,name:`${this.$store.state.songName}`,singer:`${this.$store.state.singer}`,album:`${this.$store.state.albumName}`})
+            if(this.$store.state.albumImgUrl.indexOf('https')==-1)
+            this.$store.state.albumImgUrl = this.$store.state.albumImgUrl.replace('http','https');
+            this.$store.state.historylists.push({id:`${this.$store.state.id}`,name:`${this.$store.state.songName}`,singer:`${this.$store.state.singer}`,album:`${this.$store.state.albumName}`,albumImgUrl:`${this.$store.state.albumImgUrl}`})
             this.count++;
             this.changeProgress()
             this.audioplay();
             this.name=this.$store.state.songName;
             this.singer=this.$store.state.singer;
             this.album=this.$store.state.albumName;
+            this.albumImgUrl=this.$store.state.albumImgUrl;
             this.playlists=this.$store.state.historylists;
           },
            getPlaylistTitle(curval,oldval){ 
@@ -519,13 +572,10 @@ watch:{
             // console.log(`新歌名${curval}--旧歌名${oldval}`);
           }, 
           getLoginstatus(curval,oldval){
-                      // console.log(curval,oldval)
-                      this.loginshow=false
-                      var login =document.getElementById('login');
-                      var p=document.createElement('p');
-                      p.innerHTML=`当前用户${this.$store.state.loginstatus}`
-                      login.append(p);
-          },
+            this.user=this.$store.state.loginstatus;
+            // localStorage.setItem(this.user,this.playlists);
+            // console.log(localStorage.getItem(this.user));
+          }
 
 },
 computed:{    
@@ -695,6 +745,7 @@ nav .content .content-logo{
 .player-bar .player-songImg{
   height:96px;
   width:96px;
+  cursor: pointer;
 }
 .player-bar .player-control{
   height:96px;
@@ -726,7 +777,8 @@ nav .content .content-logo{
   flex-wrap: nowrap;
   flex-direction: column;
   vertical-align:center;
-  align-items: center;
+  align-items: left;
+  text-align:left;
   overflow: hidden;
   margin:0 20px;
   height:100%;
@@ -748,6 +800,7 @@ nav .content .content-logo{
   height:100%;
   width:auto;
 }
+ 
 .player-bar .player-control .playerControl-content .songContent .songName,
 .player-bar .player-control .playerControl-content .songContent .singer,
 .player-bar .player-control .playerControl-content .songContent .songDetalis{
@@ -769,6 +822,10 @@ nav .content .content-logo{
   background:#e82359;
   border-radius: 100%;
   box-shadow: rgb(244, 91, 133) 0px 0px 15px;
+}
+.player-bar .player-control .playerControl-content .controlShow .timeShow,
+.player-bar .player-control .playerControl-content .controlShow .volumeControl{
+  width:40%;
 }
 /* .player-bar .player-control .playerControl-content .controlContent .play .pause, */
 .player-bar .player-control .playerControl-content .controlShow .volumeOff{
@@ -793,30 +850,21 @@ nav .content .content-logo{
   width:10%;
   background:#fff;
 }
-/* .player-bar .player-control .volumeProgress .volumeProgressNow:after,
-.player-bar .player-control .playerControl-progress .currentProgress:after{
-  content:'';
-  display:block;
-  height:10px;
-  width:10px;
-  border-radius:100%;
-  background:rgb(224,23,78);
-} */
-/* 布局测试 */
+
+
 .player-bar .player-control .playerControl-content .songContent{
-  margin-right:200px;
-  width:150px;
+  width:15%;
   flex-shrink: 1;
 
 }
 .player-bar .player-control .playerControl-content .controlContent{
-  margin-right:100px;
-  width:600px;
+
+  width:55%;
   flex-shrink: 2;
 
 }
 .player-bar .player-control .playerControl-content .controlShow{
-  width:300px;
+  width:30%;
   flex-shrink: 1;
 }
 .player-bar .player-control .playerControl-content .controlShow .timeShow{
@@ -862,7 +910,8 @@ nav .content .content-logo{
   cursor: pointer;
 }
 .lyric{
-  width:200px;
+  width:40%;
+  text-align: left;
   margin-right:20px;
 }
 .playList .playListName{
@@ -876,6 +925,9 @@ nav .content .content-logo{
 .playList .songMenu:hover{
   background:rgb(4,31,53);
   cursor: pointer;
+}
+.playList .songMenu img{
+  width:40px;
 }
 .playList .songMenu p{
   text-align: left;
@@ -914,5 +966,101 @@ nav .content .content-logo{
 }
 .loginMsg p{
   font-size:10px;
+}
+
+.lyricsPage{
+  position: absolute;
+  height:0;
+  width:100%;
+  background:rgb(15,58,93);
+  z-index:2;
+  bottom:0;
+  overflow: hidden;
+  transition: 0.6s;
+}
+.closeItem{
+  position:absolute;
+  height:40px;
+  width:40px;
+  top:10px;
+  left:10px;
+  font-size: 40px;
+  transition: 0.3s;
+  cursor: pointer;
+  border-radius: 50%;
+}
+.closeItem p{
+  line-height: 40px;
+  margin:auto;
+}
+.closeItem:hover{
+  background: #b6c5d9;
+}
+.lyricsPage{
+  overflow-y: auto;
+}
+.lyricsPage .lyricContent{
+  display: flex;
+  flex-direction: row;
+}
+.lyricsPage .leftContent,
+.lyricsPage .rightContent{
+  height:100%;
+  width:50%;
+}
+.lyricsPage .leftContent{
+ padding:100px 0 0 0;
+}
+.lyricsPage .rightContent{
+  padding:60px 0 0 0;
+}
+.lyricsPage .leftContent .topBox {
+  display: flex;
+  flex-direction: column;
+  vertical-align: center;
+  align-items: center;
+}
+.lyricsPage .leftContent .topBox p{
+  margin-top:10px;
+  font-size:20px;
+}
+.lyricsPage .leftContent .topBox .imgBox{
+  height:350px;
+  width:350px;
+  margin:auto;
+}
+.lyricsPage .leftContent .topBox .imgBox img{
+  box-shadow: 0.2rem 0.2rem 1rem #fff;
+}
+.lyricsPage .playerControl-progress{
+  height:3px;
+  width:60%;
+  margin:40px 0 0 0;
+  background:rgb(54,75,100);
+}
+.lyricsPage .playerControl-progress .currentProgress{
+  height:100%;
+  width:0;
+  background:rgb(218,15,71);
+}
+.lyricsPage  .timeShow{
+  display: flex;
+  width:60%;
+  flex-direction: row;
+  vertical-align: center;
+}
+.lyricsPage  .timeShow .leftTime{
+  width:50%;
+  text-align: left;
+}
+.lyricsPage  .timeShow .rightTime{
+  width:50%;
+  text-align: right;
+}
+.lyricsPage .lyricsContent{
+   overflow-y:auto;
+}
+.lyricsPage .lyricsContent p{
+  margin:6px;
 }
 </style>

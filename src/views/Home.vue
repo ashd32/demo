@@ -74,7 +74,7 @@ data () {
     
       },
        topAlbum(){
-     var requrl= '/top/song?limit=10$type=0';
+     var requrl= '/top/song?limit=10&type=0';
      axiosLoading(this.$http,requrl,res=>{
                 this.topSongs = res.data;
                 // console.log(this.topSongs)
